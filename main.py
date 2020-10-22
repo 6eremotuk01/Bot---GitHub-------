@@ -76,7 +76,7 @@ def doPostPush():
     # Заполнение полей
     message = ''
     jsonedData = json.load(request.body)
-    username = jsonedData['head_commit']['author']['username']
+    username = jsonedData['sender']['login']
     fullname = jsonedData['head_commit']['author']['name']
     commitsCount = len(jsonedData['commits'])
     sLetter = "" if commitsCount != 1 else 's'
@@ -122,6 +122,26 @@ def doPostPush():
 @post('/pull')
 def doPostPull():
     print(json.dumps(json.load(request.body), sort_keys=True, indent=4))
+
+    jsonedData = json.load(request.body)
+    action = jsonedData["action"]
+
+    if (action == "opened"):
+        ### Поля
+        # 0 — Имя пользователя
+        # 1 — Количество коммитов
+        # 2 — Буква s
+        # 3 — Куда влить (branch)
+        # 4 — Откуда влить (branch)
+        headerFormat = "{0} wants to merge {1} commit{2} into {3} from {4}"
+
+        username = jsonedData['sender']['username']
+        commitsCount = jsonedData['pull_request']['commits']
+
+        # TODO: Добавить оставшиеся полся
+        # TODO: Сделать маршрутизированную отправку
+
+        message = headerFormat.format()
     pass
 
 
