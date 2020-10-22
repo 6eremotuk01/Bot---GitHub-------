@@ -1,17 +1,25 @@
 # Укажите персональный токен JetBrain Space
-API_TOKEN = ""
-ORGANIZATION_NAME = ""  # Укажите наименование организации
-CHANNEL_NAME = "it_github_bot"  # Укажите имя канала
+API_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI0MXFCcmg0VE5sV0MiLCJhdWQiOiJjaXJjbGV0LXdlYi11aSIsIm9yZ0RvbWFpbiI6IndvcmtsZSIsIm5hbWUiOiJtc2hhbXNodXJpbkB3b3JrbGUucnUiLCJpc3MiOiJodHRwczpcL1wvamV0YnJhaW5zLnNwYWNlIiwicGVybV90b2tlbiI6IjFyNVFsSTEzNWtFWiIsInByaW5jaXBhbF90eXBlIjoiVVNFUiIsImlhdCI6MTYwMzI4ODU0N30.cpHx4odaYJjJAcWiV91_t-W-cDQF-CGBOCulyRcgPZgC7GPIOlXz1-r-bPCRvjECurbi28gKh8c4OOP6jmg4KoJ2xRRIVcFRfAqKN3G1EPjaevheMZXLCi3dtoan5jYSQTMiif04d8E8wkWMlSLH3ZmAmT3b-7M8L6Gkr7Ospx0"
+ORGANIZATION_NAME = "workle"  # Укажите наименование организации
+
+ROUTE_NAMES = {'second-branch': "kitchen", 'DEFAULT': "it_github_bot"}
 
 import requests
 import json
 from bottle import route, run, post, request
 
-CHANNEL_ID = ''
+ROUTE_IDS = {}
 REQUEST_HEADERS = {
     'Authorization': "Bearer {0}".format(API_TOKEN),
     'Accept': 'application/json',
 }
+
+
+def setChannelsIds(routesDict):
+    result = {}
+    for key in routesDict.keys():
+        result[key] = getChannelsInfo(routesDict[key])['data'][0]['channelId']
+    return result
 
 
 def getChannelsInfo(nameOfChannel=""):
@@ -23,8 +31,8 @@ def getChannelsInfo(nameOfChannel=""):
     print("Получение информации о каналах/канале...")
 
     response = requests.get(query, headers=REQUEST_HEADERS)
-    print("Запрос успешно отправлен. Ответ сервера:\n {0} \n\n".format(
-        json.dumps(response.text, sort_keys=True, indent=4)))
+    print("Запрос успешно отправлен. Ответ сервера:\n{0}\n\n".format(
+        json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
@@ -36,28 +44,43 @@ def sendMessage(channelId, message):
     query = "https://{0}.jetbrains.space/api/http/chats/channels/{1}/messages".format(
         ORGANIZATION_NAME, channelId)
 
-    print("Отправка сообщения:\n{0}".format(message))
+    print("Отправка сообщения:\n{0}\n\n".format(message))
     dataToSend = {"text": message}
     response = requests.post(query, headers=REQUEST_HEADERS, json=dataToSend)
-    print("Cообщение успешно отправлено . Ответ сервера:\n {0}\n\n".format(
-        json.dumps(response.text, sort_keys=True, indent=4)))
+    print("Cообщение успешно отправлено . Ответ сервера:\n{0}\n\n".format(
+        json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
 
-@post('/post')
+@post('/push')
 def doPost():
-    print("Произолшло событие GitHub: \n {0} \n\n".format(
+    global ROUTE_NAMES
+
+    print("Произолшло событие GitHub: \n{0}\n\n".format(
         json.dumps(request.json, sort_keys=True, indent=4)))
 
-    global CHANNEL_ID
+    # Заполнение полей
+    message = ''
+    jsonedData = json.load(request.body)
+    username = jsonedData['head_commit']['author']['username']
+    fullname = jsonedData['head_commit']['author']['name']
+    commitsCount = len(jsonedData['commits'])
+    sLetter = "" if commitsCount != 1 else 's'
+    branchName = jsonedData['ref'].split('/')[-1]
+    commits = jsonedData['commits']
+
+    userLink = jsonedData["sender"]["html_url"]
+    commitsCountLink = jsonedData["compare"]
+    repositoryLink = jsonedData["repository"][
+        "html_url"] + '/tree/' + branchName
 
     ### Поля
     # 0 — Имя пользователя
     # 1 — Полное имя
     # 2 — Количество комитов
     # 3 — Буква s, которая отображает мн. число
-    # 4 — Имя репозитория
+    # 4 — Ветка
     ### Cссылки
     # 5 — Ссылка на пользователя
     # 6 — Ссылка на изменения
@@ -69,36 +92,30 @@ def doPost():
     # 1 — Заголовок коммита
     commitFormat = "\n>\xa0\xa0\xa0[{0}]({2}) — {1}"
 
-    # Заполнение полей
-    message = ''
-    jsonedData = json.load(request.body)
-    username = jsonedData['head_commit']['author']['username']
-    fullname = jsonedData['head_commit']['author']['name']
-    commitsCount = len(jsonedData['commits'])
-    sLetter = "" if commitsCount != 1 else 's'
-    repositoryName = jsonedData['repository']['name']
-    commits = jsonedData['commits']
-
-    userLink = jsonedData["sender"]["html_url"]
-    commitsCountLink = jsonedData["compare"]
-    repositoryLink = jsonedData["repository"]["html_url"]
-
     # Формирование сообщения
     message += headerFormat.format(username, fullname, commitsCount, sLetter,
-                                   repositoryName, userLink, commitsCountLink,
+                                   branchName, userLink, commitsCountLink,
                                    repositoryLink)
     for item in commits:
         message += commitFormat.format(item['id'][0:6], item['message'],
                                        item["url"])
 
-    sendMessage(CHANNEL_ID, message)
+    try:
+        sendMessage(ROUTE_IDS[branchName], message)
+    except Exception:
+        sendMessage(ROUTE_IDS['DEFAULT'], message)
+
+    # if (sendTo):
+    #     sendMessage(sendTo, message)
+    # else:
+    #     sendMessage(ROUTES['DEFAULT'], message)
 
 
 def main():
-    global CHANNEL_ID
-    global CHANNEL_NAME
+    global ROUTE_IDS
+    global ROUTE_NAMES
 
-    CHANNEL_ID = getChannelsInfo(CHANNEL_NAME)['data'][0]['channelId']
+    ROUTE_IDS = setChannelsIds(ROUTE_NAMES)
     run(host='localhost', port=6600, debug=True)
 
 
