@@ -2,9 +2,12 @@
 
 Бот, который уведомляет о `push` событии репозитория в чате JetBrains Space
 
-
-
-<p style="text-align: center;">
+<style>
+    p.center {
+		text-align: center;
+    }
+</style>
+<p class="center">
     <img src="screenshot.png">
 </p>
 
