@@ -1,6 +1,6 @@
 # Укажите персональный токен JetBrain Space
 API_TOKEN = ""
-ORGANIZATION_NAME = "workle" # Укажите наименование организации
+ORGANIZATION_NAME = "" # Укажите наименование организации
 CHANNEL_NAME = "it_github_bot" # Укажите имя канала
 
 import requests
