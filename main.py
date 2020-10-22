@@ -2,7 +2,12 @@
 API_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI0MXFCcmg0VE5sV0MiLCJhdWQiOiJjaXJjbGV0LXdlYi11aSIsIm9yZ0RvbWFpbiI6IndvcmtsZSIsIm5hbWUiOiJtc2hhbXNodXJpbkB3b3JrbGUucnUiLCJpc3MiOiJodHRwczpcL1wvamV0YnJhaW5zLnNwYWNlIiwicGVybV90b2tlbiI6IjFyNVFsSTEzNWtFWiIsInByaW5jaXBhbF90eXBlIjoiVVNFUiIsImlhdCI6MTYwMzI4ODU0N30.cpHx4odaYJjJAcWiV91_t-W-cDQF-CGBOCulyRcgPZgC7GPIOlXz1-r-bPCRvjECurbi28gKh8c4OOP6jmg4KoJ2xRRIVcFRfAqKN3G1EPjaevheMZXLCi3dtoan5jYSQTMiif04d8E8wkWMlSLH3ZmAmT3b-7M8L6Gkr7Ospx0"
 ORGANIZATION_NAME = "workle"  # Укажите наименование организации
 
-ROUTE_NAMES = {'second-branch': "kitchen", 'DEFAULT': "it_github_bot"}
+PUSH_ROUTE_NAMES = {
+    # DEFAULT — обязательный параметр,
+    # который указывает, куда отправлять
+    # данные из других branch`ей
+    'DEFAULT': "it_github_bot"
+}
 
 import requests
 import json
@@ -54,8 +59,8 @@ def sendMessage(channelId, message):
 
 
 @post('/push')
-def doPost():
-    global ROUTE_NAMES
+def doPostPush():
+    global PUSH_ROUTE_NAMES
 
     print("Произолшло событие GitHub: \n{0}\n\n".format(
         json.dumps(request.json, sort_keys=True, indent=4)))
@@ -105,17 +110,17 @@ def doPost():
     except Exception:
         sendMessage(ROUTE_IDS['DEFAULT'], message)
 
-    # if (sendTo):
-    #     sendMessage(sendTo, message)
-    # else:
-    #     sendMessage(ROUTES['DEFAULT'], message)
 
+@post('/merge')
+def doPostMerge():
+    print (request.json)
+    pass
 
 def main():
     global ROUTE_IDS
-    global ROUTE_NAMES
+    global PUSH_ROUTE_NAMES
 
-    ROUTE_IDS = setChannelsIds(ROUTE_NAMES)
+    ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
     run(host='localhost', port=6600, debug=True)
 
 
