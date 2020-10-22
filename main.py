@@ -9,11 +9,19 @@ PUSH_ROUTE_NAMES = {
     'DEFAULT': "it_github_bot"
 }
 
+PULL_ROUTE_NAMES = {
+    # DEFAULT — обязательный параметр,
+    # который указывает, куда отправлять
+    # данные из других branch`ей
+    'DEFAULT': "it_github_bot"
+}
+
 import requests
 import json
 from bottle import route, run, post, request
 
-ROUTE_IDS = {}
+PUSH_ROUTE_IDS = {}
+PULL_ROUTE_IDS = {}
 REQUEST_HEADERS = {
     'Authorization': "Bearer {0}".format(API_TOKEN),
     'Accept': 'application/json',
@@ -106,21 +114,26 @@ def doPostPush():
                                        item["url"])
 
     try:
-        sendMessage(ROUTE_IDS[branchName], message)
+        sendMessage(PUSH_ROUTE_IDS[branchName], message)
     except Exception:
-        sendMessage(ROUTE_IDS['DEFAULT'], message)
+        sendMessage(PUSH_ROUTE_IDS['DEFAULT'], message)
 
 
-@post('/merge')
-def doPostMerge():
-    print (request.json)
+@post('/pull')
+def doPostPull():
+    print(json.dumps(json.load(request.body), sort_keys=True, indent=4))
     pass
 
-def main():
-    global ROUTE_IDS
-    global PUSH_ROUTE_NAMES
 
-    ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
+def main():
+    global PUSH_ROUTE_IDS
+    global PUSH_ROUTE_NAMES
+    PUSH_ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
+
+    global PULL_ROUTE_IDS
+    global PULL_ROUTE_NAMES
+    PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
+
     run(host='localhost', port=6600, debug=True)
 
 
