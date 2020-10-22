@@ -1,6 +1,7 @@
+# Укажите персональный токен JetBrain Space
 API_TOKEN = ""
-ORGANIZATION_NAME = "workle"
-CHANNEL_NAME = "it_github_bot"
+ORGANIZATION_NAME = "workle" # Укажите наименование организации
+CHANNEL_NAME = "it_github_bot" # Укажите имя канала
 
 import requests
 import json
@@ -50,6 +51,7 @@ def doPost():
 
     global CHANNEL_ID
 
+    ### Поля
     # 0 — Имя пользователя
     # 1 — Полное имя
     # 2 — Количество комитов
@@ -61,10 +63,12 @@ def doPost():
     # 7 — Ссылка на репозиторий
     headerFormat = ">**[{0} ({1})]({5})**\n>[{2} new commit{3}]({6}) pushed to [{4}]({7})"
 
+    ### Поля
     # 0 — Первые 7 символов id коммита
     # 1 — Заголовок коммита
     commitFormat = "\n>[{0}]({2}) — {1}"
 
+    # Заполнение полей
     message = ''
     jsonedData = json.load(request.body)
     username = jsonedData['head_commit']['author']['username']
@@ -78,6 +82,7 @@ def doPost():
     commitsCountLink = jsonedData["compare"]
     repositoryLink = jsonedData["repository"]["html_url"]
 
+    # Формирование сообщения
     message += headerFormat.format(username, fullname, commitsCount, sLetter,
                                    repositoryName, userLink, commitsCountLink,
                                    repositoryLink)
@@ -86,7 +91,6 @@ def doPost():
                                        item["url"])
 
     sendMessage(CHANNEL_ID, message)
-
 
 def main():
     global CHANNEL_ID
