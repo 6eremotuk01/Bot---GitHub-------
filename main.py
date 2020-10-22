@@ -1,7 +1,7 @@
 # Укажите персональный токен JetBrain Space
 API_TOKEN = ""
-ORGANIZATION_NAME = "" # Укажите наименование организации
-CHANNEL_NAME = "it_github_bot" # Укажите имя канала
+ORGANIZATION_NAME = ""  # Укажите наименование организации
+CHANNEL_NAME = "it_github_bot"  # Укажите имя канала
 
 import requests
 import json
@@ -47,7 +47,8 @@ def sendMessage(channelId, message):
 
 @post('/post')
 def doPost():
-    print("Произолшло событие GitHub: \n {0} \n\n".format(json.dumps(request.json, sort_keys=True, indent=4)))
+    print("Произолшло событие GitHub: \n {0} \n\n".format(
+        json.dumps(request.json, sort_keys=True, indent=4)))
 
     global CHANNEL_ID
 
@@ -91,6 +92,7 @@ def doPost():
                                        item["url"])
 
     sendMessage(CHANNEL_ID, message)
+
 
 def main():
     global CHANNEL_ID
