@@ -55,7 +55,6 @@ PULL_ROUTE_NAMES = {
 
 import requests
 import json
-from bottle import route, run, post, request
 
 # Служебные глобальные переменные (НЕ ИЗМЕНЯТЬ)
 
@@ -80,11 +79,8 @@ def getChannelsInfo(nameOfChannel=""):
 
     query = "https://{0}.jetbrains.space/api/http/chats/channels/all-channels?query={1}".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, nameOfChannel)
-    print("Получение информации о каналах/канале...")
 
     response = requests.get(query, headers=REQUEST_HEADERS)
-    print("Запрос успешно отправлен. Ответ сервера:\n{0}\n\n".format(
-        json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
@@ -96,25 +92,29 @@ def sendMessage(channelId, message):
     query = "https://{0}.jetbrains.space/api/http/chats/channels/{1}/messages".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, channelId)
 
-    print("Отправка сообщения:\n{0}\n\n".format(message))
     dataToSend = {"text": message}
     response = requests.post(query, headers=REQUEST_HEADERS, json=dataToSend)
-    print("Cообщение успешно отправлено . Ответ сервера:\n{0}\n\n".format(
-        json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
 
-@post('/push')
-def doPostPush():
+def getIDs():
+    global PUSH_ROUTE_IDS
     global PUSH_ROUTE_NAMES
+    PUSH_ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
 
-    print("Произолшло событие GitHub (push): \n{0}\n\n".format(
-        json.dumps(request.json, sort_keys=True, indent=4)))
+    global PULL_ROUTE_IDS
+    global PULL_ROUTE_NAMES
+    PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
+
+
+def doPostPush(event, context):
+    getIDs()
+    global PUSH_ROUTE_NAMES
 
     message = None
 
-    jsonedData = json.load(request.body)
+    jsonedData = json.loads(event['body'])
     after = jsonedData['after']
     before = jsonedData['before']
 
@@ -192,12 +192,9 @@ def doPostPush():
         sendMessage(PUSH_ROUTE_IDS['DEFAULT'], message)
 
 
-@post('/pull')
-def doPostPull():
-    print("Произолшло событие GitHub (pull): \n{0}\n\n".format(
-        json.dumps(request.json, sort_keys=True, indent=4)))
-
-    jsonedData = json.load(request.body)
+def doPostPull(event, context):
+    getIDs()
+    jsonedData = json.loads(event['body'])
     message = None
 
     action = jsonedData["action"]
@@ -303,18 +300,3 @@ def doPostPull():
         sendMessage(PULL_ROUTE_IDS[base], message)
     except Exception:
         sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
-
-
-def main():
-    global PUSH_ROUTE_IDS
-    global PUSH_ROUTE_NAMES
-    PUSH_ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
-
-    global PULL_ROUTE_IDS
-    global PULL_ROUTE_NAMES
-    PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
-
-    run(host='localhost', port=6600, debug=True)
-
-
-main()
