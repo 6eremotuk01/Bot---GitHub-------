@@ -1,20 +1,22 @@
 # Укажите персональный токен JetBrain Space
-API_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI0MXFCcmg0VE5sV0MiLCJhdWQiOiJjaXJjbGV0LXdlYi11aSIsIm9yZ0RvbWFpbiI6IndvcmtsZSIsIm5hbWUiOiJtc2hhbXNodXJpbkB3b3JrbGUucnUiLCJpc3MiOiJodHRwczpcL1wvamV0YnJhaW5zLnNwYWNlIiwicGVybV90b2tlbiI6IjFyNVFsSTEzNWtFWiIsInByaW5jaXBhbF90eXBlIjoiVVNFUiIsImlhdCI6MTYwMzI4ODU0N30.cpHx4odaYJjJAcWiV91_t-W-cDQF-CGBOCulyRcgPZgC7GPIOlXz1-r-bPCRvjECurbi28gKh8c4OOP6jmg4KoJ2xRRIVcFRfAqKN3G1EPjaevheMZXLCi3dtoan5jYSQTMiif04d8E8wkWMlSLH3ZmAmT3b-7M8L6Gkr7Ospx0"
-ORGANIZATION_NAME = "workle"  # Укажите наименование организации
+API_TOKEN = ""
+ORGANIZATION_NAME = ""  # Укажите наименование организации
 
+# Перенаправление по branch
 PUSH_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "test_chat_2"
+    'DEFAULT': "it_github_bot"
 }
 
+# Перенаправление по branch (в который будут
+# вливаться изменения из других ветвей)
 PULL_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'main': "test_chat_1",
-    'DEFAULT': "test_chat_2"
+    'DEFAULT': "it_github_bot"
 }
 
 import requests
@@ -265,7 +267,6 @@ def doPostPull():
         sendMessage(PULL_ROUTE_IDS[base], message)
     except Exception:
         sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
-    pass
 
 
 def main():
