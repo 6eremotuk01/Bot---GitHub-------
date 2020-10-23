@@ -6,14 +6,15 @@ PUSH_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "it_github_bot"
+    'DEFAULT': "test_chat_2"
 }
 
 PULL_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "it_github_bot"
+    'main': "test_chat_1",
+    'DEFAULT': "test_chat_2"
 }
 
 import requests
@@ -70,14 +71,13 @@ def sendMessage(channelId, message):
 def doPostPush():
     global PUSH_ROUTE_NAMES
 
-    print("Произолшло событие GitHub: \n{0}\n\n".format(
+    print("Произолшло событие GitHub (push): \n{0}\n\n".format(
         json.dumps(request.json, sort_keys=True, indent=4)))
 
     # Заполнение полей
     message = ''
     jsonedData = json.load(request.body)
     username = jsonedData['sender']['login']
-    fullname = jsonedData['head_commit']['author']['name']
     commitsCount = len(jsonedData['commits'])
     sLetter = "" if commitsCount != 1 else 's'
     branchName = jsonedData['ref'].split('/')[-1]
@@ -98,7 +98,7 @@ def doPostPush():
     # 5 — Ссылка на пользователя
     # 6 — Ссылка на изменения
     # 7 — Ссылка на репозиторий
-    headerFormat = ">**[{0} ({1})]({5})**\n>[{2} new commit{3}]({6}) pushed to [{4}]({7})"
+    headerFormat = ">**[{0}]({4})**\n>[{1} new commit{2}]({5}) pushed to [{3}]({6})"
 
     ### Поля
     # 0 — Первые 7 символов id коммита
@@ -106,11 +106,11 @@ def doPostPush():
     commitFormat = "\n>\xa0\xa0\xa0[{0}]({2}) — {1}"
 
     # Формирование сообщения
-    message += headerFormat.format(username, fullname, commitsCount, sLetter,
+    message += headerFormat.format(username, commitsCount, sLetter,
                                    branchName, userLink, commitsCountLink,
                                    repositoryLink)
     for item in commits:
-        message += commitFormat.format(item['id'][0:6], item['message'],
+        message += commitFormat.format(item['id'][0:6], item['message'].replace('\n', '\n\xa0\xa0\xa0>'),
                                        item["url"])
 
     try:
@@ -121,27 +121,50 @@ def doPostPush():
 
 @post('/pull')
 def doPostPull():
-    print(json.dumps(json.load(request.body), sort_keys=True, indent=4))
+    print("Произолшло событие GitHub (pull): \n{0}\n\n".format(
+        json.dumps(request.json, sort_keys=True, indent=4)))
 
     jsonedData = json.load(request.body)
+    message = None
+
     action = jsonedData["action"]
 
-    if (action == "opened"):
+    if (action == "opened" or action == "reopened"):
         ### Поля
         # 0 — Имя пользователя
         # 1 — Количество коммитов
         # 2 — Буква s
         # 3 — Куда влить (branch)
         # 4 — Откуда влить (branch)
-        headerFormat = "{0} wants to merge {1} commit{2} into {3} from {4}"
+        ### Ссылки
+        # 5 — ссылка на запрос слияния
+        # 6 — ссылка на коммиты
+        # 7 — ссылка на отправителя
+        messageFormat = ">[{0}]({7}) [wants to merge]({5}) [{1} commit{2}]({6}) into `{3}` from `{4}`"
 
-        username = jsonedData['sender']['username']
+        username = jsonedData['sender']['login']
         commitsCount = jsonedData['pull_request']['commits']
+        base = jsonedData['pull_request']['base']['ref']
+        head = jsonedData['pull_request']['head']['ref']
 
-        # TODO: Добавить оставшиеся полся
-        # TODO: Сделать маршрутизированную отправку
+        link = jsonedData['pull_request']['_links']['html']['href']
+        commitsLink = jsonedData['pull_request']['_links']['commits']['href']
+        senderLink = jsonedData['sender']['html_url']
 
-        message = headerFormat.format()
+        message = messageFormat.format(username, commitsCount,
+                                      "" if commitsCount == 1 else "s", base,
+                                      head, link, commitsLink, senderLink)
+
+    if (action == "closed"):
+        message = 'closed'
+
+    if (not message):
+        return
+
+    try:
+        sendMessage(PULL_ROUTE_IDS[base], message)
+    except Exception:
+        sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
     pass
 
 
