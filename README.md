@@ -69,3 +69,6 @@ PULL_ROUTE_NAMES = {
 ...
 ```
 
+### Yandex Cloud
+
+Вы можете ознакомиться с версией для [Yandex Cloud Functions](https://cloud.yandex.ru/) — `main—yc.py`
