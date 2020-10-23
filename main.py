@@ -74,44 +74,79 @@ def doPostPush():
     print("Произолшло событие GitHub (push): \n{0}\n\n".format(
         json.dumps(request.json, sort_keys=True, indent=4)))
 
-    # Заполнение полей
-    message = ''
+    message = None
+
     jsonedData = json.load(request.body)
-    username = jsonedData['sender']['login']
-    commitsCount = len(jsonedData['commits'])
-    sLetter = "" if commitsCount != 1 else 's'
-    branchName = jsonedData['ref'].split('/')[-1]
-    commits = jsonedData['commits']
+    after = jsonedData['after']
+    before = jsonedData['before']
 
-    userLink = jsonedData["sender"]["html_url"]
-    commitsCountLink = jsonedData["compare"]
-    repositoryLink = jsonedData["repository"][
-        "html_url"] + '/tree/' + branchName
+    if (before == "0000000000000000000000000000000000000000"):
+        ### Поля
+        # 0 — пользователь
+        # 1 — ссылка на пользователя
+        # 2 — удаленная ветка
+        messageFormat = ">**[{0}]({1})** created `{2}` branch"
 
-    ### Поля
-    # 0 — Имя пользователя
-    # 1 — Полное имя
-    # 2 — Количество комитов
-    # 3 — Буква s, которая отображает мн. число
-    # 4 — Ветка
-    ### Cссылки
-    # 5 — Ссылка на пользователя
-    # 6 — Ссылка на изменения
-    # 7 — Ссылка на репозиторий
-    headerFormat = ">**[{0}]({4})**\n>[{1} new commit{2}]({5}) pushed to [{3}]({6})"
+        username = jsonedData['sender']['login']
+        branchName = jsonedData['ref'].split('/')[-1]
 
-    ### Поля
-    # 0 — Первые 7 символов id коммита
-    # 1 — Заголовок коммита
-    commitFormat = "\n>\xa0\xa0\xa0[{0}]({2}) — {1}"
+        userLink = jsonedData["sender"]["html_url"]
 
-    # Формирование сообщения
-    message += headerFormat.format(username, commitsCount, sLetter, branchName,
-                                   userLink, commitsCountLink, repositoryLink)
-    for item in commits:
-        message += commitFormat.format(
-            item['id'][0:6], item['message'].replace('\n', '\n\xa0\xa0\xa0>'),
-            item["url"])
+        message = messageFormat.format(username, userLink, branchName)
+
+    elif (after == "0000000000000000000000000000000000000000"):
+        ### Поля
+        # 0 — пользователь
+        # 1 — ссылка на пользователя
+        # 2 — удаленная ветка
+        messageFormat = ">**[{0}]({1})** deleted `{2}` branch"
+
+        username = jsonedData['sender']['login']
+        branchName = jsonedData['ref'].split('/')[-1]
+
+        userLink = jsonedData["sender"]["html_url"]
+
+        message = messageFormat.format(username, userLink, branchName)
+
+    elif (after != "0000000000000000000000000000000000000000"):
+        ### Поля
+        # 0 — Имя пользователя
+        # 1 — Полное имя
+        # 2 — Количество комитов
+        # 3 — Буква s, которая отображает мн. число
+        # 4 — Ветка
+        ### Cссылки
+        # 5 — Ссылка на пользователя
+        # 6 — Ссылка на изменения
+        # 7 — Ссылка на репозиторий
+        messageFormat = ">**[{0}]({4})** pushed [{1} new commit{2}]({5}) pushed to [{3}]({6})"
+
+        ### Поля
+        # 0 — Первые 7 символов id коммита
+        # 1 — Заголовок коммита
+        commitFormat = "\n>\xa0\xa0\xa0[{0}]({2}) — {1}"
+
+        username = jsonedData['sender']['login']
+        commitsCount = len(jsonedData['commits'])
+        sLetter = "" if commitsCount != 1 else 's'
+        branchName = jsonedData['ref'].split('/')[-1]
+        commits = jsonedData['commits']
+
+        userLink = jsonedData["sender"]["html_url"]
+        commitsCountLink = jsonedData["compare"]
+        repositoryLink = jsonedData["repository"][
+            "html_url"] + '/tree/' + branchName
+
+        message = messageFormat.format(username, commitsCount, sLetter,
+                                       branchName, userLink, commitsCountLink,
+                                       repositoryLink)
+        for item in commits:
+            message += commitFormat.format(item['id'][0:6],
+                                           item['message'].replace('\n', ' '),
+                                           item["url"])
+
+    if (not message):
+        return
 
     try:
         sendMessage(PUSH_ROUTE_IDS[branchName], message)
@@ -149,7 +184,7 @@ def doPostPull():
         title = jsonedData['pull_request']['title']
 
         link = jsonedData['pull_request']['_links']['html']['href']
-        commitsLink = jsonedData['pull_request']['_links']['commits']['href']
+        commitsLink = link + "/commits"
         senderLink = jsonedData['sender']['html_url']
 
         message = messageFormat.format(sender, senderLink, commits,
@@ -157,7 +192,7 @@ def doPostPull():
                                        commitsLink, base, head, title, link)
 
     if (action == "reopened"):
-         ### Поля
+        ### Поля
         # 0 — пользователь
         # 1 — ссылка на пользователя
         # 2 — количество комитов
@@ -176,7 +211,7 @@ def doPostPull():
         title = jsonedData['pull_request']['title']
 
         link = jsonedData['pull_request']['_links']['html']['href']
-        commitsLink = jsonedData['pull_request']['_links']['commits']['href']
+        commitsLink = link + "/commits"
         senderLink = jsonedData['sender']['html_url']
 
         message = messageFormat.format(sender, senderLink, commits,
@@ -184,22 +219,44 @@ def doPostPull():
                                        commitsLink, base, head, title, link)
 
     if (action == "closed"):
-        ### Поля
-        # 0 — пользователь
-        # 1 — ссылка на пользователя
-        # 2 — наименование запроса
-        # 3 — ссылка на запрос
-        messageFormat = ">**[{0}]({1})** closed pull request **[“{2}”]({3})**"
 
-        title = head = jsonedData['pull_request']['title']
-        sender = jsonedData['sender']['login']
+        merged = jsonedData['pull_request']['merged']
 
-        senderLink = jsonedData['sender']['html_url']
-        link = jsonedData['pull_request']['_links']['html']['href']
+        if (merged):
+            ### Поля
+            # 0 — пользователь
+            # 1 — ссылка на пользователя
+            # 2 — наименование запроса
+            # 3 — ссылка на запрос
+            messageFormat = ">**[{0}]({1})** merged pull request **[“{2}”]({3})**"
 
-        base = jsonedData['pull_request']['base']['ref']
+            title = head = jsonedData['pull_request']['title']
+            merged_by = jsonedData['pull_request']['merged_by']['login']
 
-        message = messageFormat.format(sender, senderLink, title, link)
+            senderLink = jsonedData['pull_request']['merged_by']['html_url']
+            link = jsonedData['pull_request']['_links']['html']['href']
+
+            base = jsonedData['pull_request']['base']['ref']
+
+            message = messageFormat.format(merged_by, senderLink, title, link)
+
+        else:
+            ### Поля
+            # 0 — пользователь
+            # 1 — ссылка на пользователя
+            # 2 — наименование запроса
+            # 3 — ссылка на запрос
+            messageFormat = ">**[{0}]({1})** closed pull request **[“{2}”]({3})**"
+
+            title = head = jsonedData['pull_request']['title']
+            sender = jsonedData['sender']['login']
+
+            senderLink = jsonedData['sender']['html_url']
+            link = jsonedData['pull_request']['_links']['html']['href']
+
+            base = jsonedData['pull_request']['base']['ref']
+
+            message = messageFormat.format(sender, senderLink, title, link)
 
     if (not message):
         return
