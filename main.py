@@ -106,12 +106,12 @@ def doPostPush():
     commitFormat = "\n>\xa0\xa0\xa0[{0}]({2}) — {1}"
 
     # Формирование сообщения
-    message += headerFormat.format(username, commitsCount, sLetter,
-                                   branchName, userLink, commitsCountLink,
-                                   repositoryLink)
+    message += headerFormat.format(username, commitsCount, sLetter, branchName,
+                                   userLink, commitsCountLink, repositoryLink)
     for item in commits:
-        message += commitFormat.format(item['id'][0:6], item['message'].replace('\n', '\n\xa0\xa0\xa0>'),
-                                       item["url"])
+        message += commitFormat.format(
+            item['id'][0:6], item['message'].replace('\n', '\n\xa0\xa0\xa0>'),
+            item["url"])
 
     try:
         sendMessage(PUSH_ROUTE_IDS[branchName], message)
@@ -129,34 +129,77 @@ def doPostPull():
 
     action = jsonedData["action"]
 
-    if (action == "opened" or action == "reopened"):
+    if (action == "opened"):
         ### Поля
-        # 0 — Имя пользователя
-        # 1 — Количество коммитов
-        # 2 — Буква s
-        # 3 — Куда влить (branch)
-        # 4 — Откуда влить (branch)
-        ### Ссылки
-        # 5 — ссылка на запрос слияния
-        # 6 — ссылка на коммиты
-        # 7 — ссылка на отправителя
-        messageFormat = ">[{0}]({7}) [wants to merge]({5}) [{1} commit{2}]({6}) into `{3}` from `{4}`"
+        # 0 — пользователь
+        # 1 — ссылка на пользователя
+        # 2 — количество комитов
+        # 3 — буква «s»
+        # 4 — ссылка на комиты
+        # 5 — ветка вливания
+        # 6 — вливающая ветка
+        # 7 — наименование запроса
+        # 8 — ссылка на запрос
+        messageFormat = ">**[{0}]({1})** wants to merge [{2} commit{3}]({4}) into `{5}` from `{6}` \n>Pull request **[“{7}”]({8})** has been created"
 
-        username = jsonedData['sender']['login']
-        commitsCount = jsonedData['pull_request']['commits']
+        sender = jsonedData['sender']['login']
+        commits = jsonedData['pull_request']['commits']
         base = jsonedData['pull_request']['base']['ref']
         head = jsonedData['pull_request']['head']['ref']
+        title = jsonedData['pull_request']['title']
 
         link = jsonedData['pull_request']['_links']['html']['href']
         commitsLink = jsonedData['pull_request']['_links']['commits']['href']
         senderLink = jsonedData['sender']['html_url']
 
-        message = messageFormat.format(username, commitsCount,
-                                      "" if commitsCount == 1 else "s", base,
-                                      head, link, commitsLink, senderLink)
+        message = messageFormat.format(sender, senderLink, commits,
+                                       '' if commits == 1 else 's',
+                                       commitsLink, base, head, title, link)
+
+    if (action == "reopened"):
+         ### Поля
+        # 0 — пользователь
+        # 1 — ссылка на пользователя
+        # 2 — количество комитов
+        # 3 — буква «s»
+        # 4 — ссылка на комиты
+        # 5 — ветка вливания
+        # 6 — вливающая ветка
+        # 7 — наименование запроса
+        # 8 — ссылка на запрос
+        messageFormat = ">**[{0}]({1})** wants to merge [{2} commit{3}]({4}) into `{5}` from `{6}` \n>Pull request **[“{7}”]({8})** has been reopened"
+
+        sender = jsonedData['sender']['login']
+        commits = jsonedData['pull_request']['commits']
+        base = jsonedData['pull_request']['base']['ref']
+        head = jsonedData['pull_request']['head']['ref']
+        title = jsonedData['pull_request']['title']
+
+        link = jsonedData['pull_request']['_links']['html']['href']
+        commitsLink = jsonedData['pull_request']['_links']['commits']['href']
+        senderLink = jsonedData['sender']['html_url']
+
+        message = messageFormat.format(sender, senderLink, commits,
+                                       '' if commits == 1 else 's',
+                                       commitsLink, base, head, title, link)
 
     if (action == "closed"):
-        message = 'closed'
+        ### Поля
+        # 0 — пользователь
+        # 1 — ссылка на пользователя
+        # 2 — наименование запроса
+        # 3 — ссылка на запрос
+        messageFormat = ">**[{0}]({1})** closed pull request **[“{2}”]({3})**"
+
+        title = head = jsonedData['pull_request']['title']
+        sender = jsonedData['sender']['login']
+
+        senderLink = jsonedData['sender']['html_url']
+        link = jsonedData['pull_request']['_links']['html']['href']
+
+        base = jsonedData['pull_request']['base']['ref']
+
+        message = messageFormat.format(sender, senderLink, title, link)
 
     if (not message):
         return
