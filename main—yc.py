@@ -329,9 +329,11 @@ def pull(json):
     else:
         sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
 
+
 #############################################
 #                Точка входа                #
 #############################################
+
 
 def doPost(event, context):
     getIDs()
@@ -343,6 +345,3 @@ def doPost(event, context):
 
     if (findKey(jsonedData, 'commits')):
         push(jsonedData)
-
-
-
