@@ -33,7 +33,8 @@ PUSH_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "test_chat_1"
+    'main': "test_chat_1",
+    'DEFAULT': None
 }
 
 #############################################
@@ -48,7 +49,8 @@ PULL_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "test_chat_1"
+    'main': "test_chat_1",
+    'DEFAULT': None
 }
 
 #############################################
@@ -70,7 +72,10 @@ REQUEST_HEADERS = {
 def setChannelsIds(routesDict):
     result = {}
     for key in routesDict.keys():
-        result[key] = getChannelsInfo(routesDict[key])['data'][0]['channelId']
+        if (not routesDict[key]):
+            result[key] = None
+        else:
+            result[key] = getChannelsInfo(routesDict[key])['data'][0]['channelId']
     return result
 
 
@@ -90,6 +95,9 @@ def getChannelsInfo(nameOfChannel=""):
 
 
 def sendMessage(channelId, message):
+    if (not channelId):
+        return
+
     global JETBRAINS_ORGANIZATION_DOMAIN_NAME
     global REQUEST_HEADERS
 
@@ -194,10 +202,10 @@ def push(json):
     if (not message):
         return
 
-    try:
-        sendMessage(PUSH_ROUTE_IDS[branchName], message)
-    except Exception:
-        sendMessage(PUSH_ROUTE_IDS['DEFAULT'], message)
+    if (findKey(PULL_ROUTE_IDS, branchName)):
+        sendMessage(PULL_ROUTE_IDS[branchName], message)
+    else:
+        sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
 
 
 def pull(json):
@@ -306,9 +314,9 @@ def pull(json):
     if (not message):
         return
 
-    try:
+    if (findKey(PULL_ROUTE_IDS, base)):
         sendMessage(PULL_ROUTE_IDS[base], message)
-    except Exception:
+    else:
         sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
 
 
