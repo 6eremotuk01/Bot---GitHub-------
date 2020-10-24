@@ -314,7 +314,7 @@ def pull(json):
 
 @post('/push')
 def doPost():
-    jsonedData = json.loads(request.body)
+    jsonedData = json.load(request.body)
 
     if (findKey(jsonedData, 'pull_request')):
         pull(jsonedData)
