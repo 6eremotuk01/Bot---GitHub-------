@@ -5,11 +5,11 @@
 
 # JETBRAINS_API_TOKEN — токен от вашего бота или от   #
 # акаунта JetBrains Space                   #
-JETBRAINS_API_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI0MXFCcmg0VE5sV0MiLCJhdWQiOiJjaXJjbGV0LXdlYi11aSIsIm9yZ0RvbWFpbiI6IndvcmtsZSIsIm5hbWUiOiJtc2hhbXNodXJpbkB3b3JrbGUucnUiLCJpc3MiOiJodHRwczpcL1wvamV0YnJhaW5zLnNwYWNlIiwicGVybV90b2tlbiI6IjE5ZE9EeTFhT3VOayIsInByaW5jaXBhbF90eXBlIjoiVVNFUiIsImlhdCI6MTYwMzU2ODUyMX0.SxdyCX81bhVnsfbW7m_aJc4m_tp13LcO-lhlKG3C6VNEESmJP3Q5NnCw_xSoRJgvitLniDJGcD1TT5Dy-CiOnz854_53Pv15nkIjenzaKI6dJCBJP5dn_kyvFKxjzCfecShdZJnDLOzKoxhA4fOpkVp0FcklpMc9Gjq-WMHWDy0"
+JETBRAINS_API_TOKEN = ""
 
 # JETBRAINS_ORGANIZATION_DOMAIN_NAME —      #
 # доменное имя организации JetBrains Space  #
-JETBRAINS_ORGANIZATION_DOMAIN_NAME = "workle"
+JETBRAINS_ORGANIZATION_DOMAIN_NAME = ""
 
 #############################################
 #           Направления сообщений           #
@@ -33,8 +33,7 @@ PUSH_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'main': "test_chat_1",
-    'DEFAULT': None
+    'DEFAULT': "test_chat_1"
 }
 
 #############################################
@@ -49,8 +48,7 @@ PULL_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'main': "test_chat_1",
-    'DEFAULT': None
+    'DEFAULT': "test_chat_1"
 }
 
 #############################################

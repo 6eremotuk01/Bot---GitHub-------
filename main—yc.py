@@ -33,7 +33,7 @@ PUSH_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "it_github_bot"
+    'DEFAULT': "test_chat_1"
 }
 
 #############################################
@@ -48,13 +48,14 @@ PULL_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "it_github_bot"
+    'DEFAULT': "test_chat_1"
 }
 
 #############################################
 
 import requests
 import json
+from bottle import route, run, post, request
 
 # Служебные глобальные переменные (НЕ ИЗМЕНЯТЬ)
 
@@ -69,7 +70,11 @@ REQUEST_HEADERS = {
 def setChannelsIds(routesDict):
     result = {}
     for key in routesDict.keys():
-        result[key] = getChannelsInfo(routesDict[key])['data'][0]['channelId']
+        if (not routesDict[key]):
+            result[key] = None
+        else:
+            result[key] = getChannelsInfo(
+                routesDict[key])['data'][0]['channelId']
     return result
 
 
@@ -79,23 +84,37 @@ def getChannelsInfo(nameOfChannel=""):
 
     query = "https://{0}.jetbrains.space/api/http/chats/channels/all-channels?query={1}".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, nameOfChannel)
+    # print("Получение информации о каналах/канале...")
 
     response = requests.get(query, headers=REQUEST_HEADERS)
+    # print("Запрос успешно отправлен. Ответ сервера:\n{0}\n\n".format(
+    #     json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
 
 def sendMessage(channelId, message):
+    if (not channelId):
+        return
+
     global JETBRAINS_ORGANIZATION_DOMAIN_NAME
     global REQUEST_HEADERS
 
     query = "https://{0}.jetbrains.space/api/http/chats/channels/{1}/messages".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, channelId)
 
+    # print("Отправка сообщения:\n{0}\n\n".format(message))
     dataToSend = {"text": message}
     response = requests.post(query, headers=REQUEST_HEADERS, json=dataToSend)
+    # print("Cообщение успешно отправлено . Ответ сервера:\n{0}\n\n".format(
+    #     json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
+
+
+def findKey(_dict, key):
+    filtered = list(filter(lambda item: item == key, _dict.keys()))
+    return len(filtered) != 0
 
 
 def getIDs():
@@ -108,13 +127,20 @@ def getIDs():
     PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
 
 
-def doPostPush(event, context):
-    getIDs()
+#############################################
+#              Обработка событий            #
+#############################################
+
+
+def push(json):
     global PUSH_ROUTE_NAMES
+
+    # print("Произолшло событие GitHub (push): \n{0}\n\n".format(
+    # json.dumps(request.json, sort_keys=True, indent=4)))
 
     message = None
 
-    jsonedData = json.loads(event['body'])
+    jsonedData = json
     after = jsonedData['after']
     before = jsonedData['before']
 
@@ -186,15 +212,17 @@ def doPostPush(event, context):
     if (not message):
         return
 
-    try:
-        sendMessage(PUSH_ROUTE_IDS[branchName], message)
-    except Exception:
-        sendMessage(PUSH_ROUTE_IDS['DEFAULT'], message)
+    if (findKey(PULL_ROUTE_IDS, branchName)):
+        sendMessage(PULL_ROUTE_IDS[branchName], message)
+    else:
+        sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
 
 
-def doPostPull(event, context):
-    getIDs()
-    jsonedData = json.loads(event['body'])
+def pull(json):
+    # print("Произолшло событие GitHub (pull): \n{0}\n\n".format(
+    #     json.dumps(request.json, sort_keys=True, indent=4)))
+
+    jsonedData = json
     message = None
 
     action = jsonedData["action"]
@@ -296,7 +324,24 @@ def doPostPull(event, context):
     if (not message):
         return
 
-    try:
+    if (findKey(PULL_ROUTE_IDS, base)):
         sendMessage(PULL_ROUTE_IDS[base], message)
-    except Exception:
+    else:
         sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
+
+
+def doPost(events, context):
+    getIDs()
+
+    jsonedData = json.loads(events.body)
+
+    if (findKey(jsonedData, 'pull_request')):
+        pull(jsonedData)
+
+    if (findKey(jsonedData, 'commits')):
+        push(jsonedData)
+
+
+#############################################
+#                Точка входа                #
+#############################################
