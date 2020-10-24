@@ -330,10 +330,10 @@ def pull(json):
         sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
 
 
-def doPost(events, context):
+def doPost(event, context):
     getIDs()
 
-    jsonedData = json.loads(events.body)
+    jsonedData = json.loads(event['body'])
 
     if (findKey(jsonedData, 'pull_request')):
         pull(jsonedData)
