@@ -5,11 +5,11 @@
 
 # JETBRAINS_API_TOKEN — токен от вашего бота или от   #
 # акаунта JetBrains Space                   #
-JETBRAINS_API_TOKEN = ""
+JETBRAINS_API_TOKEN = "eyJhbGciOiJSUzUxMiJ9.eyJzdWIiOiI0MXFCcmg0VE5sV0MiLCJhdWQiOiJjaXJjbGV0LXdlYi11aSIsIm9yZ0RvbWFpbiI6IndvcmtsZSIsIm5hbWUiOiJtc2hhbXNodXJpbkB3b3JrbGUucnUiLCJpc3MiOiJodHRwczpcL1wvamV0YnJhaW5zLnNwYWNlIiwicGVybV90b2tlbiI6IjE5ZE9EeTFhT3VOayIsInByaW5jaXBhbF90eXBlIjoiVVNFUiIsImlhdCI6MTYwMzU2ODUyMX0.SxdyCX81bhVnsfbW7m_aJc4m_tp13LcO-lhlKG3C6VNEESmJP3Q5NnCw_xSoRJgvitLniDJGcD1TT5Dy-CiOnz854_53Pv15nkIjenzaKI6dJCBJP5dn_kyvFKxjzCfecShdZJnDLOzKoxhA4fOpkVp0FcklpMc9Gjq-WMHWDy0"
 
 # JETBRAINS_ORGANIZATION_DOMAIN_NAME —      #
 # доменное имя организации JetBrains Space  #
-JETBRAINS_ORGANIZATION_DOMAIN_NAME = ""
+JETBRAINS_ORGANIZATION_DOMAIN_NAME = "workle"
 
 #############################################
 #           Направления сообщений           #
@@ -33,12 +33,12 @@ PUSH_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "it_github_bot"
+    'DEFAULT': "test_chat_1"
 }
 
 #############################################
 #             Pull направления              #
-#############################################
+############################################# 
 # Перенаправление по branch, в который      #
 # будут вливаться изменения из              #
 # других ветвей                             #
@@ -48,7 +48,7 @@ PULL_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "it_github_bot"
+    'DEFAULT': "test_chat_1"
 }
 
 #############################################
@@ -80,11 +80,11 @@ def getChannelsInfo(nameOfChannel=""):
 
     query = "https://{0}.jetbrains.space/api/http/chats/channels/all-channels?query={1}".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, nameOfChannel)
-    print("Получение информации о каналах/канале...")
+    # print("Получение информации о каналах/канале...")
 
     response = requests.get(query, headers=REQUEST_HEADERS)
-    print("Запрос успешно отправлен. Ответ сервера:\n{0}\n\n".format(
-        json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
+    # print("Запрос успешно отправлен. Ответ сервера:\n{0}\n\n".format(
+    #     json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
@@ -96,29 +96,29 @@ def sendMessage(channelId, message):
     query = "https://{0}.jetbrains.space/api/http/chats/channels/{1}/messages".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, channelId)
 
-    print("Отправка сообщения:\n{0}\n\n".format(message))
+    # print("Отправка сообщения:\n{0}\n\n".format(message))
     dataToSend = {"text": message}
     response = requests.post(query, headers=REQUEST_HEADERS, json=dataToSend)
-    print("Cообщение успешно отправлено . Ответ сервера:\n{0}\n\n".format(
-        json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
+    # print("Cообщение успешно отправлено . Ответ сервера:\n{0}\n\n".format(
+    #     json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
+
 
 def findKey(_dict, key):
     filtered = list(filter(lambda item: item == key, _dict.keys()))
     return len(filtered) != 0
 
-@post('/push')
-def doPost():
-    jsonedData = json.loads(request.body)
-    # if (findKey(jsonedData, ))
-    pass
 
-def Push(json):
+#############################################
+#              Обработка событий            #
+############################################# 
+
+def push(json):
     global PUSH_ROUTE_NAMES
 
-    print("Произолшло событие GitHub (push): \n{0}\n\n".format(
-        json.dumps(request.json, sort_keys=True, indent=4)))
+    # print("Произолшло событие GitHub (push): \n{0}\n\n".format(
+    # json.dumps(request.json, sort_keys=True, indent=4)))
 
     message = None
 
@@ -200,9 +200,9 @@ def Push(json):
         sendMessage(PUSH_ROUTE_IDS['DEFAULT'], message)
 
 
-def doPostPull(json):
-    print("Произолшло событие GitHub (pull): \n{0}\n\n".format(
-        json.dumps(request.json, sort_keys=True, indent=4)))
+def pull(json):
+    # print("Произолшло событие GitHub (pull): \n{0}\n\n".format(
+    #     json.dumps(request.json, sort_keys=True, indent=4)))
 
     jsonedData = json
     message = None
@@ -312,6 +312,21 @@ def doPostPull(json):
         sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
 
 
+@post('/push')
+def doPost():
+    jsonedData = json.loads(request.body)
+
+    if (findKey(jsonedData, 'pull_request')):
+        pull(jsonedData)
+
+    if (findKey(jsonedData, 'commits')):
+        push(jsonedData)
+
+
+#############################################
+#                Точка входа                #
+#############################################
+
 def main():
     global PUSH_ROUTE_IDS
     global PUSH_ROUTE_NAMES
@@ -321,7 +336,7 @@ def main():
     global PULL_ROUTE_NAMES
     PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
 
-    run(host='localhost', port=66000, debug=True)
+    run(host='localhost', port=6600, debug=True)
 
 
 main()
