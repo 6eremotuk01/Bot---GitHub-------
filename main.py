@@ -104,9 +104,17 @@ def sendMessage(channelId, message):
 
     return json.loads(response.text)
 
+def findKey(_dict, key):
+    filtered = list(filter(lambda item: item == key, _dict.keys()))
+    return len(filtered) != 0
 
 @post('/push')
-def doPostPush():
+def doPost():
+    jsonedData = json.loads(request.body)
+    # if (findKey(jsonedData, ))
+    pass
+
+def Push(json):
     global PUSH_ROUTE_NAMES
 
     print("Произолшло событие GitHub (push): \n{0}\n\n".format(
@@ -114,7 +122,7 @@ def doPostPush():
 
     message = None
 
-    jsonedData = json.load(request.body)
+    jsonedData = json
     after = jsonedData['after']
     before = jsonedData['before']
 
@@ -192,12 +200,11 @@ def doPostPush():
         sendMessage(PUSH_ROUTE_IDS['DEFAULT'], message)
 
 
-@post('/pull')
-def doPostPull():
+def doPostPull(json):
     print("Произолшло событие GitHub (pull): \n{0}\n\n".format(
         json.dumps(request.json, sort_keys=True, indent=4)))
 
-    jsonedData = json.load(request.body)
+    jsonedData = json
     message = None
 
     action = jsonedData["action"]
@@ -314,7 +321,7 @@ def main():
     global PULL_ROUTE_NAMES
     PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
 
-    run(host='localhost', port=6600, debug=True)
+    run(host='localhost', port=66000, debug=True)
 
 
 main()
