@@ -3,12 +3,14 @@
 # (обязательные параметры)                  #
 #############################################
 
-# JETBRAINS_API_TOKEN — токен от вашего бота или от   #
-# акаунта JetBrains Space                   #
+# JETBRAINS_API_TOKEN — токен от вашего     #
+# бота или от акаунта JetBrains Space       #
 JETBRAINS_API_TOKEN = ""
 
 # JETBRAINS_ORGANIZATION_DOMAIN_NAME —      #
 # доменное имя организации JetBrains Space  #
+JETBRAINS_CLIENT_ID = ""
+JETBRAINS_CLIENT_SECRET = ""
 JETBRAINS_ORGANIZATION_DOMAIN_NAME = ""
 
 #############################################
@@ -33,12 +35,12 @@ PUSH_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "test_chat_1"
+    'DEFAULT': "it_github_bot"
 }
 
 #############################################
 #             Pull направления              #
-############################################# 
+#############################################
 # Перенаправление по branch, в который      #
 # будут вливаться изменения из              #
 # других ветвей                             #
@@ -48,13 +50,15 @@ PULL_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "test_chat_1"
+    'DEFAULT': "it_github_bot"
 }
 
 #############################################
 
 import requests
 import json
+import base64
+import urllib
 from bottle import route, run, post, request
 
 # Служебные глобальные переменные (НЕ ИЗМЕНЯТЬ)
@@ -67,13 +71,35 @@ REQUEST_HEADERS = {
 }
 
 
+def getAccessToken():
+    global JETBRAINS_ORGANIZATION_DOMAIN_NAME
+    global JETBRAINS_CLIENT_ID
+    global JETBRAINS_CLIENT_SECRET
+
+    authorizationString = JETBRAINS_CLIENT_ID + ":" + JETBRAINS_CLIENT_SECRET
+    bytesString = authorizationString.encode('ascii')
+    base64String = base64.b64encode(bytesString).decode('ascii')
+
+    query = "https://{0}.jetbrains.space/oauth/token".format(
+        JETBRAINS_ORGANIZATION_DOMAIN_NAME)
+    response = requests.post(
+        query,
+        data={
+            'grant_type': 'client_credentials',
+        },
+        headers={'Authorization': 'Basic ' + base64String})
+
+    return json.loads(response.text)['access_token']
+
+
 def setChannelsIds(routesDict):
     result = {}
     for key in routesDict.keys():
         if (not routesDict[key]):
             result[key] = None
         else:
-            result[key] = getChannelsInfo(routesDict[key])['data'][0]['channelId']
+            result[key] = getChannelsInfo(
+                routesDict[key])['data'][0]['channelId']
     return result
 
 
@@ -83,11 +109,8 @@ def getChannelsInfo(nameOfChannel=""):
 
     query = "https://{0}.jetbrains.space/api/http/chats/channels/all-channels?query={1}".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, nameOfChannel)
-    # print("Получение информации о каналах/канале...")
 
     response = requests.get(query, headers=REQUEST_HEADERS)
-    # print("Запрос успешно отправлен. Ответ сервера:\n{0}\n\n".format(
-    #     json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
@@ -102,11 +125,8 @@ def sendMessage(channelId, message):
     query = "https://{0}.jetbrains.space/api/http/chats/channels/{1}/messages".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, channelId)
 
-    # print("Отправка сообщения:\n{0}\n\n".format(message))
     dataToSend = {"text": message}
     response = requests.post(query, headers=REQUEST_HEADERS, json=dataToSend)
-    # print("Cообщение успешно отправлено . Ответ сервера:\n{0}\n\n".format(
-    #     json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
@@ -118,13 +138,11 @@ def findKey(_dict, key):
 
 #############################################
 #              Обработка событий            #
-############################################# 
+#############################################
+
 
 def push(json):
     global PUSH_ROUTE_NAMES
-
-    # print("Произолшло событие GitHub (push): \n{0}\n\n".format(
-    # json.dumps(request.json, sort_keys=True, indent=4)))
 
     message = None
 
@@ -207,9 +225,6 @@ def push(json):
 
 
 def pull(json):
-    # print("Произолшло событие GitHub (pull): \n{0}\n\n".format(
-    #     json.dumps(request.json, sort_keys=True, indent=4)))
-
     jsonedData = json
     message = None
 
@@ -333,7 +348,12 @@ def doPost():
 #                Точка входа                #
 #############################################
 
+
 def main():
+    global JETBRAINS_API_TOKEN
+    JETBRAINS_API_TOKEN = getAccessToken()
+    REQUEST_HEADERS['Authorization'] = 'Bearer ' + JETBRAINS_API_TOKEN
+
     global PUSH_ROUTE_IDS
     global PUSH_ROUTE_NAMES
     PUSH_ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
