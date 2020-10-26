@@ -1,15 +1,22 @@
 #############################################
-# Настройки для работы                      #
-# (обязательные параметры)                  #
+#          Настройки для работы             #
+#        (обязательные параметры)           #
 #############################################
-
-# JETBRAINS_API_TOKEN — токен от вашего бота или от   #
-# акаунта JetBrains Space                   #
-JETBRAINS_API_TOKEN = ""
 
 # JETBRAINS_ORGANIZATION_DOMAIN_NAME —      #
 # доменное имя организации JetBrains Space  #
 JETBRAINS_ORGANIZATION_DOMAIN_NAME = ""
+
+# JETBRAINS_CLIENT_ID — идентификатор бота, #
+# который будет отправлять сообщения        #
+# JETBRAINS_CLIENT_SECRET — секретный ключ  #
+# бота                                      #
+JETBRAINS_CLIENT_ID = ""
+JETBRAINS_CLIENT_SECRET = ""
+
+# Информация о ботах находится в Space:     #
+# Administration → Applications             #
+#############################################
 
 #############################################
 #           Направления сообщений           #
@@ -21,6 +28,14 @@ JETBRAINS_ORGANIZATION_DOMAIN_NAME = ""
 # Чтобы отправлять все нефильтрованные      #
 # ветки в определенный чат, укажите:        #
 # "DEFAULT" : "SPACE_CHAT_DISPLAY_NAME"     #
+#                                           #
+# Чтобы игнорировать определенный branch    #
+# укажите:                                  #
+# "BRANCH_NAME" : None                      #
+#                                           #
+# Чтобы игнорировать branch`и, которые не   #
+# прошли фильтрацию укажите:                #
+# "DEFAULT" : None                          #
 #############################################
 
 #############################################
@@ -55,21 +70,48 @@ PULL_ROUTE_NAMES = {
 
 import requests
 import json
+import base64
 
 # Служебные глобальные переменные (НЕ ИЗМЕНЯТЬ)
 
 PUSH_ROUTE_IDS = {}
 PULL_ROUTE_IDS = {}
+JETBRAINS_API_TOKEN = ""
 REQUEST_HEADERS = {
     'Authorization': "Bearer {0}".format(JETBRAINS_API_TOKEN),
     'Accept': 'application/json',
 }
 
 
+def getAccessToken():
+    global JETBRAINS_ORGANIZATION_DOMAIN_NAME
+    global JETBRAINS_CLIENT_ID
+    global JETBRAINS_CLIENT_SECRET
+
+    authorizationString = JETBRAINS_CLIENT_ID + ":" + JETBRAINS_CLIENT_SECRET
+    bytesString = authorizationString.encode('ascii')
+    base64String = base64.b64encode(bytesString).decode('ascii')
+
+    query = "https://{0}.jetbrains.space/oauth/token".format(
+        JETBRAINS_ORGANIZATION_DOMAIN_NAME)
+    response = requests.post(
+        query,
+        data={
+            'grant_type': 'client_credentials',
+        },
+        headers={'Authorization': 'Basic ' + base64String})
+
+    return json.loads(response.text)['access_token']
+
+
 def setChannelsIds(routesDict):
     result = {}
     for key in routesDict.keys():
-        result[key] = getChannelsInfo(routesDict[key])['data'][0]['channelId']
+        if (not routesDict[key]):
+            result[key] = None
+        else:
+            result[key] = getChannelsInfo(
+                routesDict[key])['data'][0]['channelId']
     return result
 
 
@@ -86,6 +128,9 @@ def getChannelsInfo(nameOfChannel=""):
 
 
 def sendMessage(channelId, message):
+    if (not channelId):
+        return
+
     global JETBRAINS_ORGANIZATION_DOMAIN_NAME
     global REQUEST_HEADERS
 
@@ -98,23 +143,22 @@ def sendMessage(channelId, message):
     return json.loads(response.text)
 
 
-def getIDs():
-    global PUSH_ROUTE_IDS
-    global PUSH_ROUTE_NAMES
-    PUSH_ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
-
-    global PULL_ROUTE_IDS
-    global PULL_ROUTE_NAMES
-    PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
+def findKey(_dict, key):
+    filtered = list(filter(lambda item: item == key, _dict.keys()))
+    return len(filtered) != 0
 
 
-def doPostPush(event, context):
-    getIDs()
+#############################################
+#              Обработка событий            #
+#############################################
+
+
+def push(json):
     global PUSH_ROUTE_NAMES
 
     message = None
 
-    jsonedData = json.loads(event['body'])
+    jsonedData = json
     after = jsonedData['after']
     before = jsonedData['before']
 
@@ -186,15 +230,14 @@ def doPostPush(event, context):
     if (not message):
         return
 
-    try:
-        sendMessage(PUSH_ROUTE_IDS[branchName], message)
-    except Exception:
-        sendMessage(PUSH_ROUTE_IDS['DEFAULT'], message)
+    if (findKey(PULL_ROUTE_IDS, branchName)):
+        sendMessage(PULL_ROUTE_IDS[branchName], message)
+    else:
+        sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
 
 
-def doPostPull(event, context):
-    getIDs()
-    jsonedData = json.loads(event['body'])
+def pull(json):
+    jsonedData = json
     message = None
 
     action = jsonedData["action"]
@@ -296,7 +339,38 @@ def doPostPull(event, context):
     if (not message):
         return
 
-    try:
+    if (findKey(PULL_ROUTE_IDS, base)):
         sendMessage(PULL_ROUTE_IDS[base], message)
-    except Exception:
+    else:
         sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
+
+
+def getIds():
+    global JETBRAINS_API_TOKEN
+    global REQUEST_HEADERS
+    JETBRAINS_API_TOKEN = getAccessToken()
+    REQUEST_HEADERS['Authorization'] = 'Bearer ' + JETBRAINS_API_TOKEN
+
+    global PUSH_ROUTE_IDS
+    global PUSH_ROUTE_NAMES
+    PUSH_ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
+
+    global PULL_ROUTE_IDS
+    global PULL_ROUTE_NAMES
+    PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
+
+
+#############################################
+#                Точка входа                #
+#############################################
+
+
+def doPost(event, context):
+    getIds()
+    jsonedData = json.loads(event['body'])
+
+    if (findKey(jsonedData, 'pull_request')):
+        pull(jsonedData)
+
+    if (findKey(jsonedData, 'commits')):
+        push(jsonedData)
