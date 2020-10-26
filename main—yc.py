@@ -3,12 +3,10 @@
 # (обязательные параметры)                  #
 #############################################
 
-# JETBRAINS_API_TOKEN — токен от вашего бота или от   #
-# акаунта JetBrains Space                   #
-JETBRAINS_API_TOKEN = ""
-
 # JETBRAINS_ORGANIZATION_DOMAIN_NAME —      #
 # доменное имя организации JetBrains Space  #
+JETBRAINS_CLIENT_ID = ""
+JETBRAINS_CLIENT_SECRET = ""
 JETBRAINS_ORGANIZATION_DOMAIN_NAME = ""
 
 #############################################
@@ -55,15 +53,37 @@ PULL_ROUTE_NAMES = {
 
 import requests
 import json
+import base64
 
 # Служебные глобальные переменные (НЕ ИЗМЕНЯТЬ)
 
 PUSH_ROUTE_IDS = {}
 PULL_ROUTE_IDS = {}
+JETBRAINS_API_TOKEN = ""
 REQUEST_HEADERS = {
     'Authorization': "Bearer {0}".format(JETBRAINS_API_TOKEN),
     'Accept': 'application/json',
 }
+
+def getAccessToken():
+    global JETBRAINS_ORGANIZATION_DOMAIN_NAME
+    global JETBRAINS_CLIENT_ID
+    global JETBRAINS_CLIENT_SECRET
+
+    authorizationString = JETBRAINS_CLIENT_ID + ":" + JETBRAINS_CLIENT_SECRET
+    bytesString = authorizationString.encode('ascii')
+    base64String = base64.b64encode(bytesString).decode('ascii')
+
+    query = "https://{0}.jetbrains.space/oauth/token".format(
+        JETBRAINS_ORGANIZATION_DOMAIN_NAME)
+    response = requests.post(
+        query,
+        data={
+            'grant_type': 'client_credentials',
+        },
+        headers={'Authorization': 'Basic ' + base64String})
+
+    return json.loads(response.text)['access_token']
 
 
 def setChannelsIds(routesDict):
@@ -117,6 +137,10 @@ def findKey(_dict, key):
 
 
 def getIDs():
+    global JETBRAINS_API_TOKEN
+    JETBRAINS_API_TOKEN = getAccessToken()
+    REQUEST_HEADERS['Authorization'] = 'Bearer ' + JETBRAINS_API_TOKEN
+
     global PUSH_ROUTE_IDS
     global PUSH_ROUTE_NAMES
     PUSH_ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)

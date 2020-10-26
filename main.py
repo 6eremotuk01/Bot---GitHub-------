@@ -3,10 +3,6 @@
 # (обязательные параметры)                  #
 #############################################
 
-# JETBRAINS_API_TOKEN — токен от вашего     #
-# бота или от акаунта JetBrains Space       #
-JETBRAINS_API_TOKEN = ""
-
 # JETBRAINS_ORGANIZATION_DOMAIN_NAME —      #
 # доменное имя организации JetBrains Space  #
 JETBRAINS_CLIENT_ID = ""
@@ -58,13 +54,13 @@ PULL_ROUTE_NAMES = {
 import requests
 import json
 import base64
-import urllib
 from bottle import route, run, post, request
 
 # Служебные глобальные переменные (НЕ ИЗМЕНЯТЬ)
 
 PUSH_ROUTE_IDS = {}
 PULL_ROUTE_IDS = {}
+JETBRAINS_API_TOKEN = ""
 REQUEST_HEADERS = {
     'Authorization': "Bearer {0}".format(JETBRAINS_API_TOKEN),
     'Accept': 'application/json',
@@ -351,6 +347,7 @@ def doPost():
 
 def main():
     global JETBRAINS_API_TOKEN
+    global REQUEST_HEADERS
     JETBRAINS_API_TOKEN = getAccessToken()
     REQUEST_HEADERS['Authorization'] = 'Bearer ' + JETBRAINS_API_TOKEN
 
