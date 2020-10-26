@@ -1,13 +1,22 @@
 #############################################
-# Настройки для работы                      #
-# (обязательные параметры)                  #
+#          Настройки для работы             #
+#        (обязательные параметры)           #
 #############################################
 
 # JETBRAINS_ORGANIZATION_DOMAIN_NAME —      #
 # доменное имя организации JetBrains Space  #
+JETBRAINS_ORGANIZATION_DOMAIN_NAME = ""
+
+# JETBRAINS_CLIENT_ID — идентификатор бота, #
+# который будет отправлять сообщения        #
+# JETBRAINS_CLIENT_SECRET — секретный ключ  #
+# бота                                      #
 JETBRAINS_CLIENT_ID = ""
 JETBRAINS_CLIENT_SECRET = ""
-JETBRAINS_ORGANIZATION_DOMAIN_NAME = ""
+
+# Информация о ботах находится в Space:     #
+# Administration → Applications             #
+#############################################
 
 #############################################
 #           Направления сообщений           #
@@ -19,6 +28,14 @@ JETBRAINS_ORGANIZATION_DOMAIN_NAME = ""
 # Чтобы отправлять все нефильтрованные      #
 # ветки в определенный чат, укажите:        #
 # "DEFAULT" : "SPACE_CHAT_DISPLAY_NAME"     #
+#                                           #
+# Чтобы игнорировать определенный branch    #
+# укажите:                                  #
+# "BRANCH_NAME" : None                      #
+#                                           #
+# Чтобы игнорировать branch`и, которые не   #
+# прошли фильтрацию укажите:                #
+# "DEFAULT" : None                          #
 #############################################
 
 #############################################
@@ -103,11 +120,7 @@ def getChannelsInfo(nameOfChannel=""):
 
     query = "https://{0}.jetbrains.space/api/http/chats/channels/all-channels?query={1}".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, nameOfChannel)
-    # print("Получение информации о каналах/канале...")
-
     response = requests.get(query, headers=REQUEST_HEADERS)
-    # print("Запрос успешно отправлен. Ответ сервера:\n{0}\n\n".format(
-    #     json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
@@ -122,11 +135,8 @@ def sendMessage(channelId, message):
     query = "https://{0}.jetbrains.space/api/http/chats/channels/{1}/messages".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, channelId)
 
-    # print("Отправка сообщения:\n{0}\n\n".format(message))
     dataToSend = {"text": message}
     response = requests.post(query, headers=REQUEST_HEADERS, json=dataToSend)
-    # print("Cообщение успешно отправлено . Ответ сервера:\n{0}\n\n".format(
-    #     json.dumps(json.loads(response.text), sort_keys=True, indent=4)))
 
     return json.loads(response.text)
 
@@ -157,9 +167,6 @@ def getIDs():
 
 def push(json):
     global PUSH_ROUTE_NAMES
-
-    # print("Произолшло событие GitHub (push): \n{0}\n\n".format(
-    # json.dumps(request.json, sort_keys=True, indent=4)))
 
     message = None
 
@@ -242,9 +249,6 @@ def push(json):
 
 
 def pull(json):
-    # print("Произолшло событие GitHub (pull): \n{0}\n\n".format(
-    #     json.dumps(request.json, sort_keys=True, indent=4)))
-
     jsonedData = json
     message = None
 
