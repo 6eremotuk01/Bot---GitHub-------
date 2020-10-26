@@ -67,8 +67,8 @@ PUSH_ROUTE_NAMES = {
     # который указывает, куда отправлять
     # данные из других branch`ей
     'DEFAULT': "it_github_bot",
-    'name-of-branch': None # События в ветке "name-of-branch" будут проигнорированы, 
-    					   # а все остальное будет направлено в "it_github_bot"
+    'name-of-branch': None # События в ветке "name-of-branch" будут проигнорированы,
+                           # а все остальное будет направлено в "it_github_bot"
 }
 ```
 
@@ -80,7 +80,7 @@ PUSH_ROUTE_NAMES = {
     # данные из других branch`ей
     'DEFAULT': None,
     'name-of-branch': 'channel-name' # События в ветке "name-of-branch" будут отправлены в чат 'channel-name'
-    					   # а все остальное будет проигнорированно
+                                     # а все остальное будет проигнорированно
 }
 ```
 
