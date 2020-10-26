@@ -48,7 +48,7 @@ PUSH_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "test_chat_1"
+    'DEFAULT': "it_github_bot"
 }
 
 #############################################
@@ -63,7 +63,7 @@ PULL_ROUTE_NAMES = {
     # DEFAULT — обязательный параметр,
     # который указывает, куда отправлять
     # данные из других branch`ей
-    'DEFAULT': "test_chat_1"
+    'DEFAULT': "it_github_bot"
 }
 
 #############################################
@@ -81,6 +81,7 @@ REQUEST_HEADERS = {
     'Authorization': "Bearer {0}".format(JETBRAINS_API_TOKEN),
     'Accept': 'application/json',
 }
+
 
 def getAccessToken():
     global JETBRAINS_ORGANIZATION_DOMAIN_NAME
@@ -120,6 +121,7 @@ def getChannelsInfo(nameOfChannel=""):
 
     query = "https://{0}.jetbrains.space/api/http/chats/channels/all-channels?query={1}".format(
         JETBRAINS_ORGANIZATION_DOMAIN_NAME, nameOfChannel)
+
     response = requests.get(query, headers=REQUEST_HEADERS)
 
     return json.loads(response.text)
@@ -144,20 +146,6 @@ def sendMessage(channelId, message):
 def findKey(_dict, key):
     filtered = list(filter(lambda item: item == key, _dict.keys()))
     return len(filtered) != 0
-
-
-def getIDs():
-    global JETBRAINS_API_TOKEN
-    JETBRAINS_API_TOKEN = getAccessToken()
-    REQUEST_HEADERS['Authorization'] = 'Bearer ' + JETBRAINS_API_TOKEN
-
-    global PUSH_ROUTE_IDS
-    global PUSH_ROUTE_NAMES
-    PUSH_ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
-
-    global PULL_ROUTE_IDS
-    global PULL_ROUTE_NAMES
-    PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
 
 
 #############################################
@@ -357,14 +345,28 @@ def pull(json):
         sendMessage(PULL_ROUTE_IDS['DEFAULT'], message)
 
 
+def getIds():
+    global JETBRAINS_API_TOKEN
+    global REQUEST_HEADERS
+    JETBRAINS_API_TOKEN = getAccessToken()
+    REQUEST_HEADERS['Authorization'] = 'Bearer ' + JETBRAINS_API_TOKEN
+
+    global PUSH_ROUTE_IDS
+    global PUSH_ROUTE_NAMES
+    PUSH_ROUTE_IDS = setChannelsIds(PUSH_ROUTE_NAMES)
+
+    global PULL_ROUTE_IDS
+    global PULL_ROUTE_NAMES
+    PULL_ROUTE_IDS = setChannelsIds(PULL_ROUTE_NAMES)
+
+
 #############################################
 #                Точка входа                #
 #############################################
 
 
 def doPost(event, context):
-    getIDs()
-
+    getIds()
     jsonedData = json.loads(event['body'])
 
     if (findKey(jsonedData, 'pull_request')):
