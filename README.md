@@ -26,18 +26,20 @@
 
 ## Начало работы
 
-Для использования бота необходимо создать вебхук со следующими событиями:
+Для использования бота необходимо создать вебхук со следующими настройками:
 
-- **Pull request review comments**
-- **Pull requests**
-- **Pushes**
-- **Pull request reviews**
+- **Content type**: `application/json`
+- **Let me select individual events**:
+	- `Pull request review comments`
+	- `Pull requests`
+	- `Pushes`
+	- `Pull request reviews`
 
 Для того, чтобы запустить бота необходимо указать обязательные параметры внутри main.py:
 
-- **JETBRAINS_ORGANIZATION_DOMAIN_NAME** — наименование вашей рабочей группы в Space
-- **JETBRAINS_CLIENT_ID**  — идентификатор приложения (сервисный аккаунт, приложение и т.п., которое будет отправлять собщение)
-- **JETBRAINS_CLIENT_SECRET** — секретный ключ приложения
+- `JETBRAINS_ORGANIZATION_DOMAIN_NAME` — наименование вашей рабочей группы в Space
+- `JETBRAINS_CLIENT_ID`  — идентификатор приложения (сервисный аккаунт, приложение и т.п., которое будет отправлять собщение)
+- `JETBRAINS_CLIENT_SECRET` — секретный ключ приложения
 - [Маршруты для сообщений](#настройка-маршрутизации-оповещений)
 
 
